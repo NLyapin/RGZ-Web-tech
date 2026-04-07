@@ -1,16 +1,23 @@
-# API Документация
+# API Documentation
 
-Базовый URL: `http://localhost:8000/api`
+Базовый URL:
 
-Формат ответов: JSON  
-Авторизация: JWT (Bearer)
+```text
+http://localhost:8000/api
+```
 
-## Аутентификация
+Формат:
+- Request/response: `application/json` (кроме upload)
+- Авторизация: `Authorization: Bearer <access_token>`
 
-### POST `/register/`
-Регистрация пользователя.
+## 1. Auth
 
-Request JSON:
+### 1.1 Регистрация
+
+`POST /auth/register/`
+
+Request:
+
 ```json
 {
   "username": "demo",
@@ -19,7 +26,8 @@ Request JSON:
 }
 ```
 
-Response 201:
+Response `201`:
+
 ```json
 {
   "id": 1,
@@ -28,17 +36,20 @@ Response 201:
 }
 ```
 
-Пример curl:
+Пример:
+
 ```bash
-curl -X POST http://localhost:8000/api/register/ \
+curl -X POST http://localhost:8000/api/auth/register/ \
   -H "Content-Type: application/json" \
   -d '{"username":"demo","email":"demo@example.com","password":"demo1234"}'
 ```
 
-### POST `/login/`
-Получение JWT access token.
+### 1.2 Получение JWT
 
-Request JSON:
+`POST /auth/token/`
+
+Request:
+
 ```json
 {
   "username": "demo",
@@ -46,118 +57,186 @@ Request JSON:
 }
 ```
 
-Response 200:
+Response `200`:
+
 ```json
 {
-  "refresh": "eyJ0eXAiOiJKV1QiLCJhbGciOi...",
-  "access": "eyJ0eXAiOiJKV1QiLCJhbGciOi..."
+  "refresh": "eyJhbGciOi...",
+  "access": "eyJhbGciOi..."
 }
 ```
 
-Пример curl:
+Пример:
+
 ```bash
-curl -X POST http://localhost:8000/api/login/ \
+curl -X POST http://localhost:8000/api/auth/token/ \
   -H "Content-Type: application/json" \
   -d '{"username":"demo","password":"demo1234"}'
 ```
 
-## Видео
+### 1.3 Обновление access token
 
-### GET `/videos/`
-Список видео (публично).
+`POST /auth/token/refresh/`
 
-Response 200:
+Request:
+
+```json
+{
+  "refresh": "eyJhbGciOi..."
+}
+```
+
+Response `200`:
+
+```json
+{
+  "access": "eyJhbGciOi..."
+}
+```
+
+## 2. Videos
+
+### 2.1 Получить список видео
+
+`GET /videos/` (публичный)
+
+Response `200`:
+
 ```json
 [
   {
-    "id": 1,
-    "title": "Первое видео",
-    "description": "Описание",
-    "video_file": "http://localhost:8000/media/videos/demo.mp4",
-    "uploaded_at": "2026-03-23T12:00:00Z",
-    "uploaded_by": 1
+    "id": 2,
+    "title": "My video",
+    "description": "Description",
+    "file_url": "http://localhost:8000/media/videos/example.mp4",
+    "thumbnail_url": "",
+    "uploaded_by": "demo",
+    "created_at": "2026-04-08T01:20:43.243985+07:00",
+    "updated_at": "2026-04-08T01:20:43.244039+07:00",
+    "views": 0
   }
 ]
 ```
 
-Пример curl:
+Пример:
+
 ```bash
 curl http://localhost:8000/api/videos/
 ```
 
-### POST `/upload/`
-Загрузка видео (JWT required).
+### 2.2 Создать видео (upload)
 
-FormData:
-- `title` (string)
-- `description` (string)
-- `video_file` (file)
+`POST /videos/` (требует JWT)
 
-Headers:
-```
-Authorization: Bearer <access_token>
-```
-
-Пример curl:
-```bash
-curl -X POST http://localhost:8000/api/upload/ \
-  -H "Authorization: Bearer <access_token>" \
-  -F "title=Демо" \
-  -F "description=Описание" \
-  -F "video_file=@/path/to/video.mp4"
-```
-
-Response 201:
-```json
-{
-  "id": 1,
-  "title": "Демо",
-  "description": "Описание",
-  "video_file": "http://localhost:8000/media/videos/demo.mp4",
-  "uploaded_at": "2026-03-23T12:00:00Z",
-  "uploaded_by": 1
-}
-```
-
-### GET `/videos/{id}/`
-Детали видео (публично).
-
-Response 200:
-```json
-{
-  "id": 1,
-  "title": "Демо",
-  "description": "Описание",
-  "video_file": "http://localhost:8000/media/videos/demo.mp4",
-  "uploaded_at": "2026-03-23T12:00:00Z",
-  "uploaded_by": 1
-}
-```
-
-Пример curl:
-```bash
-curl http://localhost:8000/api/videos/1/
-```
-
-### GET `/videos/{id}/thumbnail`
-Превью (заглушка 1x1 PNG).
-
-Response 200: `image/png`
+Form-data поля:
+- `title` — string
+- `description` — string (опционально)
+- `file` — video file
+- `thumbnail` — image file (опционально)
 
 Пример:
+
 ```bash
-curl http://localhost:8000/api/videos/1/thumbnail --output thumb.png
+ACCESS_TOKEN="<your_access_token>"
+
+curl -X POST http://localhost:8000/api/videos/ \
+  -H "Authorization: Bearer ${ACCESS_TOKEN}" \
+  -F "title=Test video" \
+  -F "description=Uploaded from curl" \
+  -F "file=@/absolute/path/video.mp4"
 ```
 
-## Коды ошибок
-- `400` — неверные данные запроса
-- `401` — нет или неверный JWT токен
-- `404` — объект не найден
-- `500` — ошибка сервера
+Response `201`:
 
-## Быстрый сценарий работы
-1. `POST /register/` — создать пользователя  
-2. `POST /login/` — получить `access`  
-3. `POST /upload/` — загрузить видео  
-4. `GET /videos/` — получить список  
-5. `GET /videos/{id}/` — открыть конкретное видео  
+```json
+{
+  "id": 3,
+  "title": "Test video",
+  "description": "Uploaded from curl",
+  "file": "http://localhost:8000/media/videos/video.mp4",
+  "thumbnail": null
+}
+```
+
+### 2.3 Получить видео по id
+
+`GET /videos/{id}/` (публичный)
+
+Пример:
+
+```bash
+curl http://localhost:8000/api/videos/3/
+```
+
+### 2.4 Частично обновить видео
+
+`PATCH /videos/{id}/` (требует JWT)
+
+Request:
+
+```json
+{
+  "title": "New title",
+  "description": "New description"
+}
+```
+
+Пример:
+
+```bash
+ACCESS_TOKEN="<your_access_token>"
+
+curl -X PATCH http://localhost:8000/api/videos/3/ \
+  -H "Authorization: Bearer ${ACCESS_TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{"title":"New title","description":"New description"}'
+```
+
+### 2.5 Удалить видео
+
+`DELETE /videos/{id}/` (требует JWT)
+
+Пример:
+
+```bash
+ACCESS_TOKEN="<your_access_token>"
+
+curl -X DELETE http://localhost:8000/api/videos/3/ \
+  -H "Authorization: Bearer ${ACCESS_TOKEN}"
+```
+
+Response `204`: пустое тело.
+
+### 2.6 Стриминг видео (Range)
+
+`GET /videos/{id}/stream/` (публичный)
+
+Поддерживается заголовок `Range`, ответ `206 Partial Content`.
+
+Пример:
+
+```bash
+curl -H "Range: bytes=0-1048575" \
+  -o part.mp4 \
+  http://localhost:8000/api/videos/2/stream/
+```
+
+## 3. Коды ответов
+
+- `200` — успешный запрос
+- `201` — ресурс создан
+- `204` — ресурс удален
+- `400` — ошибка валидации
+- `401` — отсутствует/некорректный токен
+- `404` — ресурс не найден
+- `416` — некорректный `Range`
+
+## 4. Быстрый e2e сценарий
+
+1. `POST /auth/register/` — создать пользователя  
+2. `POST /auth/token/` — получить `access`  
+3. `POST /videos/` — загрузить видео  
+4. `GET /videos/` — увидеть запись в каталоге  
+5. `PATCH /videos/{id}/` — отредактировать название/описание  
+6. `GET /videos/{id}/stream/` — проверить потоковое воспроизведение  
+7. `DELETE /videos/{id}/` — удалить видео  

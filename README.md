@@ -1,48 +1,100 @@
-# Веб-Технологии РГР
+# RGZ Web Tech — Video Hosting
 
-Создание тестовой видеоплатформы с использованием технологий Python
-для бэкенда, React JS для фронтенда и Figma для дизайна
+РГЗ по теме:  
+**«Создание тестовой видеоплатформы с использованием технологий Python для бэкенда, React JS для фронтенда и Figma для дизайна»**.
 
-## Возможности
-- Регистрация и вход с JWT.
-- Загрузка видео и обложек.
-- Потоковое воспроизведение с поддержкой Range-запросов.
-- Библиотека видео, страница трансляции, вспомогательные страницы из макетов.
+## Что реализовано
 
-## Структура
-- `backend/` — Django проект.
-- `videos/` — приложение с моделями и API.
-- `frontend/` — React приложение.
-- `docs/` — документация API.
-- `report/` — отчёт.
+- Регистрация пользователя и вход по JWT.
+- Импорт видеофайлов.
+- Каталог видео с карточками.
+- Просмотр видео и стриминг через endpoint с поддержкой `Range`.
+- Редактирование и удаление видео.
+- UI: бургер-меню, профиль, базовые анимации.
+- Запуск в Docker (`backend` + `frontend`).
 
-## Быстрый старт (обновлено под `frontend/` + `backend/`)
+## Технологии
 
-### 1. Бэкенд (`backend/`)
+- Backend: `Django 4.2`, `Django REST Framework`, `SimpleJWT`
+- Frontend: `React (CRA)`
+- База данных: `SQLite` (по умолчанию в текущем docker-compose)
+- Контейнеризация: `Docker`, `docker compose`
+
+## Структура репозитория
+
+- `backend/` — Django project (`settings.py`, `urls.py`)
+- `videos/` — основное DRF-приложение (модели, сериализаторы, viewset, auth endpoints)
+- `frontend/` — React-приложение
+- `docs/` — документация API
+- `docker-compose.yml` — запуск приложения в контейнерах
+
+## Быстрый старт (рекомендуется)
+
+Требования:
+- Docker Desktop
+- Docker Compose v2
+
+Запуск:
+
+```bash
+docker compose up -d --build
+```
+
+Проверка:
+- Frontend: `http://localhost:3000`
+- Backend API: `http://localhost:8000/api/`
+
+Остановка:
+
+```bash
+docker compose down
+```
+
+## Локальный запуск без Docker
+
+### Backend
+
 ```bash
 python3 -m venv .venv
-. .venv/bin/activate
+source .venv/bin/activate
 pip install -r requirements.txt
-```
-python manage.py migrate
-python manage.py runserver
+USE_SQLITE=1 python manage.py migrate
+USE_SQLITE=1 python manage.py runserver 0.0.0.0:8000
 ```
 
-> Если Postgres недоступен, используйте `USE_SQLITE=1` для локального запуска.
+### Frontend
 
-### 2. Фронтенд (`frontend/`)
 ```bash
 cd frontend
 npm install
 npm start
 ```
 
-Приложение будет доступно на `http://localhost:3000`.
+## Переменные окружения Backend
 
-## Тестирование
-```bash
-USE_SQLITE=1 python manage.py test
-```
+Поддерживаются в `backend/settings.py`:
+
+- `DJANGO_SECRET_KEY`
+- `DJANGO_DEBUG` (`1`/`0`)
+- `DJANGO_ALLOWED_HOSTS` (через запятую)
+- `CORS_ALLOWED_ORIGINS` (через запятую)
+- `USE_SQLITE` (`1` включает SQLite)
+
+Если `USE_SQLITE=0`, backend ожидает:
+- `POSTGRES_DB`
+- `POSTGRES_USER`
+- `POSTGRES_PASSWORD`
+- `POSTGRES_HOST`
+- `POSTGRES_PORT`
 
 ## Документация API
-Смотрите `docs/api.md`.
+
+Подробно: [docs/api.md](docs/api.md)
+
+## Типовой сценарий проверки
+
+1. Зарегистрировать пользователя.
+2. Получить JWT (`access`, `refresh`).
+3. Выполнить импорт видео через `POST /api/videos/`.
+4. Проверить каталог через `GET /api/videos/`.
+5. Открыть видео и проверить стрим через `GET /api/videos/{id}/stream/`.
